@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VarStock — La Variation de Stocks</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--navy:#0f1b2d;--navy-light:#1a2d47;--navy-mid:#243b5c;
+--accent:#ff6b35;--accent-glow:#ff8c5a;
+--green:#00d68f;--green-dark:#00b377;
+--red:#ff4757;--red-dark:#e03e4d;
+--blue:#3b82f6;--blue-light:#60a5fa;
+--gold:#fbbf24;--purple:#a78bfa;
+--bg:#080e1a;--card:#0d1929;
+--text:#e2e8f0;--text-dim:#8899aa;--text-bright:#f8fafc;
+--border:#1e3150;
+--radius:16px;--radius-sm:10px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,.08),transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(255,107,53,.06),transparent 50%);pointer-events:none;z-index:0}
+
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(8,14,26,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:60px}
+.top-bar .logo{font-weight:800;font-size:1.2rem;color:var(--accent);white-space:nowrap}
+.top-bar .logo span{color:var(--text-dim);font-weight:400;font-size:.8rem;margin-left:.4rem}
+.nav-tabs{display:flex;gap:3px;flex-wrap:wrap}
+.nav-tab{background:none;border:none;color:var(--text-dim);font-family:inherit;font-size:.78rem;font-weight:500;padding:.4rem .7rem;border-radius:8px;cursor:pointer;transition:.2s;white-space:nowrap}
+.nav-tab:hover{color:var(--text);background:var(--navy-light)}
+.nav-tab.active{color:var(--accent);background:rgba(255,107,53,.12)}
+
+.main{padding-top:76px;max-width:1050px;margin:0 auto;padding-left:1.25rem;padding-right:1.25rem;position:relative;z-index:1;padding-bottom:3rem}
+section{display:none;animation:fadeUp .4s ease}
+section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.hero{text-align:center;padding:3rem 0 2rem}
+.hero h1{font-size:clamp(1.8rem,4.5vw,2.8rem);font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--text-bright),var(--blue-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.6rem}
+.hero p{color:var(--text-dim);font-size:1rem;max-width:550px;margin:0 auto 1.5rem}
+.hero-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.hero-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;text-align:left;cursor:pointer;transition:.3s;position:relative;overflow:hidden}
+.hero-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 10px 30px rgba(255,107,53,.1)}
+.hero-card .num{font-family:'JetBrains Mono';font-size:2.5rem;font-weight:700;color:rgba(255,107,53,.12);position:absolute;top:8px;right:12px}
+.hero-card h3{font-size:1rem;font-weight:700;margin-bottom:.3rem;color:var(--text-bright)}
+.hero-card p{font-size:.8rem;color:var(--text-dim);line-height:1.4}
+.badge{display:inline-block;font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:20px;margin-bottom:.5rem}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue-light)}
+.badge-green{background:rgba(0,214,143,.15);color:var(--green)}
+.badge-orange{background:rgba(255,107,53,.15);color:var(--accent)}
+.badge-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+
+.section-title{font-size:1.6rem;font-weight:800;margin-bottom:.4rem;letter-spacing:-.5px;color:var(--text-bright)}
+.section-sub{color:var(--text-dim);margin-bottom:1.5rem;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.25rem}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:.6rem;color:var(--text-bright)}
+
+.key-msg{background:linear-gradient(135deg,rgba(255,107,53,.08),rgba(59,130,246,.08));border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.85rem 1.1rem;margin:1.25rem 0;font-size:.85rem;font-weight:500}
+.key-msg.green{border-color:var(--green);background:linear-gradient(135deg,rgba(0,214,143,.08),rgba(59,130,246,.05))}
+.key-msg.red{border-color:var(--red);background:linear-gradient(135deg,rgba(255,71,87,.08),rgba(255,107,53,.05))}
+
+.stock-visual{display:flex;gap:1.5rem;justify-content:center;align-items:flex-end;margin:1.5rem 0;flex-wrap:wrap}
+.stock-col{text-align:center}
+.stock-col .label{font-size:.75rem;color:var(--text-dim);margin-bottom:.4rem}
+.stock-col .items{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;min-height:50px;align-items:flex-end}
+.stock-col .items span{font-size:1.4rem}
+.stock-col .value{font-family:'JetBrains Mono';font-weight:700;font-size:.95rem;margin-top:.4rem}
+.stock-arrow{font-size:1.8rem;color:var(--accent);align-self:center;padding-bottom:1.2rem}
+
+.entry-box{background:var(--navy);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;font-family:'JetBrains Mono';font-size:.82rem;margin:.6rem 0;overflow-x:auto}
+.entry-row{display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.entry-row:last-child{border:none}
+.entry-row .account{flex:1}
+.entry-row .debit,.entry-row .credit{width:90px;text-align:right}
+.entry-row .debit{color:var(--red)}
+.entry-row .credit{color:var(--green)}
+.entry-header{font-weight:700;color:var(--text-dim);font-size:.7rem;text-transform:uppercase;letter-spacing:1px}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem;margin:1.25rem 0}
+.exercise h3{font-size:1.05rem;font-weight:700;color:var(--accent);margin-bottom:.75rem}
+.exercise-data{background:var(--navy);border-radius:var(--radius-sm);padding:1.1rem;margin-bottom:1.25rem;font-size:.88rem;line-height:1.7}
+.exercise-data strong{color:var(--gold)}
+
+.step-group{margin-bottom:1.25rem}
+.step-label{font-weight:600;font-size:.9rem;margin-bottom:.4rem;color:var(--text-bright);display:flex;align-items:center;gap:.4rem}
+.step-label .sn{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0}
+.input-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.4rem 0}
+.input-row label{font-size:.82rem;color:var(--text-dim);min-width:130px}
+.ci{background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:.45rem .65rem;color:var(--text-bright);font-family:'JetBrains Mono';font-size:.85rem;width:110px;outline:none;transition:.2s}
+.ci:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,107,53,.15)}
+.ci.correct{border-color:var(--green);background:rgba(0,214,143,.08)}
+.ci.wrong{border-color:var(--red);background:rgba(255,71,87,.08)}
+.ci.locked{opacity:.7;pointer-events:none}
+.hint{font-size:.72rem;color:var(--text-dim);font-style:italic;margin-top:.2rem}
+
+.btn{font-family:inherit;font-weight:600;border:none;border-radius:var(--radius-sm);padding:.55rem 1.25rem;cursor:pointer;font-size:.85rem;transition:.2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-glow);transform:translateY(-1px)}
+.btn-secondary{background:var(--navy-light);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--text-dim)}
+.btn-secondary:disabled{opacity:.5;cursor:default}
+
+.feedback{margin-top:.75rem;padding:.85rem;border-radius:var(--radius-sm);font-size:.85rem;display:none}
+.feedback.show{display:block;animation:fadeUp .3s ease}
+.feedback.success{background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.3);color:var(--green)}
+.feedback.error{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);color:var(--red)}
+.feedback.info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--blue-light)}
+.feedback.warning{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:var(--gold)}
+
+.ab{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:10px;margin-left:.5rem;font-weight:600}
+.a2{background:rgba(0,214,143,.15);color:var(--green)}
+.a1{background:rgba(251,191,36,.15);color:var(--gold)}
+.a0{background:rgba(255,71,87,.15);color:var(--red)}
+
+.comp-table{width:100%;border-collapse:separate;border-spacing:0;border-radius:var(--radius-sm);overflow:hidden;margin:.75rem 0;font-size:.82rem}
+.comp-table th{background:var(--navy-mid);color:var(--text-bright);padding:.6rem;font-weight:600;text-align:left}
+.comp-table td{padding:.55rem .65rem;border-bottom:1px solid var(--border);vertical-align:top}
+.comp-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.scenario-card{background:var(--navy-light);border-radius:var(--radius-sm);padding:1.25rem;text-align:center;border-top:3px solid var(--border)}
+.scenario-card.up{border-color:var(--green)}
+.scenario-card.down{border-color:var(--red)}
+.scenario-card .icon{font-size:2rem;margin-bottom:.5rem}
+.scenario-card h4{font-weight:700;font-size:.95rem;margin-bottom:.4rem}
+.scenario-card p{font-size:.78rem;color:var(--text-dim);line-height:1.4}
+
+@media(max-width:768px){
+  .top-bar{flex-direction:column;height:auto;padding:.5rem 1rem;gap:.3rem}
+  .nav-tabs{justify-content:center}
+  .main{padding-top:110px}
+  .scenario-grid{grid-template-columns:1fr}
+  .stock-visual{flex-direction:column;align-items:center}
+  .stock-arrow{transform:rotate(90deg);padding:0}
+  .input-row{flex-direction:column;align-items:flex-start}
+  .ci{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="logo">VarStock <span>Variation de Stocks</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="nav('home')">Accueil</button>
+    <button class="nav-tab" onclick="nav('th609')">Théorie 609</button>
+    <button class="nav-tab" onclick="nav('th71')">Théorie 71</button>
+    <button class="nav-tab" onclick="nav('exo1')">Exo 609-A</button>
+    <button class="nav-tab" onclick="nav('exo2')">Exo 609-B</button>
+    <button class="nav-tab" onclick="nav('exo3')">Exo 71</button>
+    <button class="nav-tab" onclick="nav('exo4')">Exo Complet</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- HOME -->
+<section id="home" class="active">
+<div class="hero">
+  <h1>La Variation de Stocks</h1>
+  <p>Comprends le mécanisme du compte 609 et du compte 71, et entraîne-toi avec des exercices interactifs.</p>
+</div>
+<div class="hero-cards">
+  <div class="hero-card" onclick="nav('th609')"><div class="num">01</div><span class="badge badge-blue">Théorie</span><h3>Le compte 609</h3><p>Variation de stock pour MP, fournitures et marchandises (3000, 3100, 3400).</p></div>
+  <div class="hero-card" onclick="nav('th71')"><div class="num">02</div><span class="badge badge-purple">Théorie</span><h3>Le compte 71</h3><p>Variation de stock pour en-cours et produits finis (3200, 3300).</p></div>
+  <div class="hero-card" onclick="nav('exo1')"><div class="num">03</div><span class="badge badge-green">Exercice</span><h3>609 — Stock augmente</h3><p>Le magasin de t-shirts a plus de stock en fin d'année.</p></div>
+  <div class="hero-card" onclick="nav('exo2')"><div class="num">04</div><span class="badge badge-green">Exercice</span><h3>609 — Stock diminue</h3><p>Le concessionnaire auto a vendu plus qu'il n'a acheté.</p></div>
+  <div class="hero-card" onclick="nav('exo3')"><div class="num">05</div><span class="badge badge-orange">Exercice</span><h3>71 — Produits finis</h3><p>L'entreprise industrielle ajuste ses produits finis.</p></div>
+  <div class="hero-card" onclick="nav('exo4')"><div class="num">06</div><span class="badge badge-orange">Exercice</span><h3>Exercice complet</h3><p>Fournitures + marchandises + produits finis en une fois.</p></div>
+</div>
+</section>
+
+<!-- THÉORIE 609 -->
+<section id="th609">
+<h2 class="section-title">Le compte 609 — Variation de stocks</h2>
+<p class="section-sub">Pour les matières premières (3000), fournitures (3100) et marchandises (3400).</p>
+
+<div class="card">
+  <h3>🏪 Le stock au bilan ne bouge PAS pendant l'année !</h3>
+  <p style="font-size:.85rem;line-height:1.6;color:var(--text-dim)">Imagine un magasin de t-shirts. En début d'année, le bilan affiche un stock de marchandises (3400) d'une certaine valeur. <strong style="color:var(--text-bright)">Pendant toute l'année, ce compte 3400 ne bouge pas !</strong> Les achats passent par le 604, les ventes par le 70, mais le stock au bilan reste figé à sa valeur du 1er janvier.</p>
+  <div class="stock-visual">
+    <div class="stock-col"><div class="label">Stock au bilan (3400)<br>1er janvier</div><div class="items"><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span></div><div class="value" style="color:var(--blue-light)">5 unités</div></div>
+    <div class="stock-arrow">⏳</div>
+    <div class="stock-col"><div class="label">Pendant l'année<br>achats (604) + ventes (70)</div><div class="items"><span>📦</span><span>📦</span><span>📦</span><span>🛒</span><span>🛒</span></div><div class="value" style="color:var(--gold)">3400 ne bouge pas !</div></div>
+    <div class="stock-arrow">📋</div>
+    <div class="stock-col"><div class="label">Inventaire physique<br>31 décembre</div><div class="items"><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span></div><div class="value" style="color:var(--green)">8 unités → corriger !</div></div>
+  </div>
+  <div class="key-msg">💡 C'est seulement après l'<strong>inventaire physique</strong> de fin d'année qu'on passe l'écriture de variation de stock pour que le bilan reflète la réalité.</div>
+</div>
+
+<div class="card">
+  <h3>🎯 Double objectif de l'écriture</h3>
+  <p style="font-size:.85rem;color:var(--text-dim);line-height:1.6">L'écriture de variation de stock a un <strong style="color:var(--text-bright)">double but</strong> :</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:.75rem 0">
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:1rem;border-left:3px solid var(--blue)">
+      <div style="font-size:.78rem;font-weight:700;color:var(--blue-light);margin-bottom:.3rem">1. RECTIFIER LE BILAN</div>
+      <div style="font-size:.82rem;color:var(--text-dim)">Le compte de stock (3400) doit correspondre à la réalité constatée lors de l'inventaire physique.</div>
+    </div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:1rem;border-left:3px solid var(--green)">
+      <div style="font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:.3rem">2. CORRIGER LE RÉSULTAT</div>
+      <div style="font-size:.82rem;color:var(--text-dim)">Le compte 609 ajuste les charges pour que le résultat reflète le vrai coût des ventes (pas juste le total des achats).</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>🧮 La formule</h3>
+  <div style="background:var(--navy);border-radius:var(--radius-sm);padding:1rem;font-family:'JetBrains Mono';font-size:1rem;text-align:center;margin:.6rem 0">
+    <span style="color:var(--blue-light)">Stock initial</span> − <span style="color:var(--green)">Stock final</span> = <span style="color:var(--gold)">Variation</span>
+  </div>
+  <div class="scenario-grid">
+    <div class="scenario-card up">
+      <div class="icon">📈</div>
+      <h4 style="color:var(--green)">Stock a augmenté</h4>
+      <p>SI &lt; SF → variation <strong>négative</strong><br>= <strong>diminution</strong> des charges<br><br>D <strong>3400</strong> stock ↑<br>C <strong>609</strong> charges ↓</p>
+    </div>
+    <div class="scenario-card down">
+      <div class="icon">📉</div>
+      <h4 style="color:var(--red)">Stock a diminué</h4>
+      <p>SI &gt; SF → variation <strong>positive</strong><br>= <strong>augmentation</strong> des charges<br><br>D <strong>609</strong> charges ↑<br>C <strong>3400</strong> stock ↓</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>📝 Pourquoi corriger le résultat ?</h3>
+  <p style="font-size:.85rem;color:var(--text-dim);line-height:1.6">Le compte de résultats contient <strong style="color:var(--text-bright)">tous les achats</strong> de l'année (604). Mais les achats ≠ le coût des ventes !</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:.75rem 0">
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:1rem">
+      <div style="font-size:.78rem;color:var(--green);font-weight:700;margin-bottom:.3rem">STOCK ↑ → Charges ↓</div>
+      <div style="font-size:.82rem;color:var(--text-dim)">On a acheté PLUS qu'on n'a vendu. Une partie des achats est encore en stock → le 609 crédité diminue les charges.</div>
+    </div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:1rem">
+      <div style="font-size:.78rem;color:var(--red);font-weight:700;margin-bottom:.3rem">STOCK ↓ → Charges ↑</div>
+      <div style="font-size:.82rem;color:var(--text-dim)">On a vendu PLUS qu'on n'a acheté (puisé dans le stock). Le 609 débité augmente les charges.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>✏️ Exemple : le magasin de t-shirts</h3>
+  <div class="exercise-data">
+    Stock initial marchandises (3400) au 01/01 : <strong>2.000 €</strong><br>
+    Achats de l'année (604) : <strong>15.000 €</strong><br>
+    Stock final (inventaire 31/12) : <strong>3.500 €</strong><br><br>
+    Variation = 2.000 − 3.500 = <strong style="color:var(--green)">−1.500 €</strong> → stock a augmenté
+  </div>
+  <div class="stock-visual">
+    <div class="stock-col"><div class="label">Stock initial</div><div class="items"><span>👕</span><span>👕</span></div><div class="value">2.000 €</div></div>
+    <div class="stock-arrow">→</div>
+    <div class="stock-col"><div class="label">Stock final</div><div class="items"><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span></div><div class="value" style="color:var(--green)">3.500 €</div></div>
+  </div>
+  <div class="entry-box">
+    <div class="entry-row entry-header"><span class="account">Compte</span><span class="debit">Débit</span><span class="credit">Crédit</span></div>
+    <div class="entry-row"><span class="account">3400 Marchandises</span><span class="debit">1.500 €</span><span class="credit"></span></div>
+    <div class="entry-row"><span class="account">6094 Var. stocks marchandises</span><span class="debit"></span><span class="credit">1.500 €</span></div>
+  </div>
+  <div class="key-msg green">💡 Le 3400 passe de 2.000 à 3.500 € au bilan. Le 609 crédité diminue les charges de 1.500 € au résultat.</div>
+</div>
+
+<div class="card">
+  <h3>📚 Les subdivisions du 609</h3>
+  <table class="comp-table">
+    <thead><tr><th>Compte 609</th><th>Stock de…</th><th>Bilan</th></tr></thead>
+    <tbody>
+      <tr><td><strong>6090</strong></td><td>Matières premières</td><td>3000</td></tr>
+      <tr><td><strong>6091</strong></td><td>Fournitures</td><td>3100</td></tr>
+      <tr><td><strong>6094</strong></td><td>Marchandises</td><td>3400</td></tr>
+    </tbody>
+  </table>
+  <div class="key-msg red">⚠️ Les comptes 3200 (en-cours) et 3300 (produits finis) ne passent PAS par le 609 mais par le compte <strong>71</strong> !</div>
+</div>
+</section>
+
+<!-- THÉORIE 71 -->
+<section id="th71">
+<h2 class="section-title">Le compte 71 — En-cours et produits finis</h2>
+<p class="section-sub">Pour les en-cours de fabrication (3200) et les produits finis (3300).</p>
+
+<div class="card">
+  <h3>🏭 Pourquoi un compte différent ?</h3>
+  <p style="font-size:.85rem;color:var(--text-dim);line-height:1.6">Les comptes 3200 et 3300 concernent des produits <strong style="color:var(--text-bright)">fabriqués par l'entreprise</strong>. Ce ne sont pas des achats ! L'entreprise a utilisé des matières premières, de la main-d'œuvre, de l'énergie, etc.</p>
+  <p style="font-size:.85rem;color:var(--text-dim);line-height:1.6;margin-top:.4rem">Le compte <strong style="color:var(--purple)">71</strong> est un <strong style="color:var(--purple)">compte de produit</strong> (classe 7). Il apparaît côté <strong>produits</strong> dans le résultat d'exploitation.</p>
+  <div class="stock-visual">
+    <div class="stock-col"><div class="label">Matières + travail</div><div class="items"><span>🪵</span><span>🔧</span><span>⚡</span></div></div>
+    <div class="stock-arrow">→</div>
+    <div class="stock-col"><div class="label">Fabrication</div><div class="items"><span>🏭</span></div></div>
+    <div class="stock-arrow">→</div>
+    <div class="stock-col"><div class="label">Produits finis (3300)</div><div class="items"><span>📦</span><span>📦</span><span>📦</span></div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>🧮 Même logique, compte différent</h3>
+  <div style="background:var(--navy);border-radius:var(--radius-sm);padding:1rem;font-family:'JetBrains Mono';font-size:1rem;text-align:center;margin:.6rem 0">
+    <span style="color:var(--blue-light)">Stock initial</span> − <span style="color:var(--green)">Stock final</span> = <span style="color:var(--purple)">Variation</span>
+  </div>
+  <div class="scenario-grid">
+    <div class="scenario-card up">
+      <div class="icon">📈</div>
+      <h4 style="color:var(--green)">Stock PF a augmenté</h4>
+      <p>SI &lt; SF → produit plus que vendu<br><br>D <strong>3300</strong> stock ↑<br>C <strong>7130</strong> produits ↑<br><span style="font-size:.72rem">(production stockée)</span></p>
+    </div>
+    <div class="scenario-card down">
+      <div class="icon">📉</div>
+      <h4 style="color:var(--red)">Stock PF a diminué</h4>
+      <p>SI &gt; SF → vendu du stock existant<br><br>D <strong>7130</strong> produits ↓<br>C <strong>3300</strong> stock ↓<br><span style="font-size:.72rem">(déstockage)</span></p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>✏️ Exemple : stock de produits finis diminue</h3>
+  <div class="exercise-data">
+    Stock initial PF (3300) au 01/01 : <strong>18.642 €</strong><br>
+    Stock final PF (inventaire 31/12) : <strong>15.035 €</strong><br><br>
+    Variation = 18.642 − 15.035 = <strong style="color:var(--red)">+3.607 €</strong> → stock a diminué
+  </div>
+  <div class="entry-box">
+    <div class="entry-row entry-header"><span class="account">Compte</span><span class="debit">Débit</span><span class="credit">Crédit</span></div>
+    <div class="entry-row"><span class="account">7130 Var. stocks produits finis</span><span class="debit">3.607 €</span><span class="credit"></span></div>
+    <div class="entry-row"><span class="account">3300 Produits finis</span><span class="debit"></span><span class="credit">3.607 €</span></div>
+  </div>
+  <div class="key-msg red">💡 Le 71 débité apparaît en négatif côté produits dans le résultat → réduit le total des produits de 3.607 €.</div>
+</div>
+
+<div class="card">
+  <h3>📚 Subdivisions du 71</h3>
+  <table class="comp-table">
+    <thead><tr><th>Compte 71</th><th>Stock de…</th><th>Bilan</th></tr></thead>
+    <tbody>
+      <tr><td><strong>7120</strong></td><td>En-cours de fabrication</td><td>3200</td></tr>
+      <tr><td><strong>7130</strong></td><td>Produits finis</td><td>3300</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>🔑 Résumé : 609 vs 71</h3>
+  <table class="comp-table">
+    <thead><tr><th></th><th>Compte 609</th><th>Compte 71</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Nature</strong></td><td>Charge (classe 6)</td><td>Produit (classe 7)</td></tr>
+      <tr><td><strong>Stocks</strong></td><td>3000, 3100, 3400</td><td>3200, 3300</td></tr>
+      <tr><td><strong>Logique</strong></td><td>Biens <em>achetés</em></td><td>Biens <em>fabriqués</em></td></tr>
+      <tr><td><strong>Au résultat</strong></td><td>Côté charges</td><td>Côté produits</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<!-- EXO 1 : 609 stock augmente -->
+<section id="exo1">
+<h2 class="section-title">Exercice 609-A — Le stock augmente</h2>
+<p class="section-sub">2 tentatives par étape avant la solution.</p>
+<div class="exercise">
+  <h3>📋 Le magasin « TrendShirt »</h3>
+  <div class="exercise-data">
+    <div class="stock-visual" style="margin:.5rem 0">
+      <div class="stock-col"><div class="label">Stock initial 01/01</div><div class="items"><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span></div><div class="value">5.000 €</div></div>
+      <div class="stock-arrow">→</div>
+      <div class="stock-col"><div class="label">Stock final 31/12</div><div class="items"><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span><span>👕</span></div><div class="value" style="color:var(--green)">8.000 €</div></div>
+    </div>
+    Marchandises (3400) : SI = <strong>5.000 €</strong> | SF = <strong>8.000 €</strong>
+  </div>
+
+  <div class="step-group">
+    <div class="step-label"><span class="sn">1</span> Variation <span class="ab a2" id="at_e1v">2 essais</span></div>
+    <div class="input-row"><label>SI − SF =</label><input type="text" class="ci" id="e1v" placeholder="?"> €</div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">2</span> Écriture <span class="ab a2" id="at_e1e">2 essais</span></div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:.75rem">
+      <div class="input-row"><label>Débit : compte</label><input type="text" class="ci" id="e1d" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e1dm" placeholder="Montant"> €</div>
+      <div class="input-row"><label>Crédit : compte</label><input type="text" class="ci" id="e1c" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e1cm" placeholder="Montant"> €</div>
+    </div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">3</span> Question <span class="ab a2" id="at_e1q">2 essais</span></div>
+    <p style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">Pourquoi crédite-t-on le 609 ?</p>
+    <div id="e1qW">
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e1q',0)">A. Parce que les charges augmentent</button>
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e1q',1)">B. Parce qu'une partie des achats n'a pas été vendue → il faut diminuer les charges</button>
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e1q',2)">C. Parce que le 609 est toujours crédité</button>
+    </div>
+    <div class="feedback" id="fb_e1q"></div>
+  </div>
+  <button class="btn btn-primary" onclick="check('e1')">Vérifier</button>
+  <div class="feedback" id="fb_e1"></div>
+</div>
+</section>
+
+<!-- EXO 2 : 609 stock diminue -->
+<section id="exo2">
+<h2 class="section-title">Exercice 609-B — Le stock diminue</h2>
+<p class="section-sub">2 tentatives par étape.</p>
+<div class="exercise">
+  <h3>📋 Le concessionnaire « AutoPlus »</h3>
+  <div class="exercise-data">
+    <div class="stock-visual" style="margin:.5rem 0">
+      <div class="stock-col"><div class="label">Stock initial 01/01</div><div class="items"><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span></div><div class="value">120.000 €</div></div>
+      <div class="stock-arrow">→</div>
+      <div class="stock-col"><div class="label">Stock final 31/12</div><div class="items"><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span><span>🚗</span></div><div class="value" style="color:var(--red)">75.000 €</div></div>
+    </div>
+    Marchandises (3400) : SI = <strong>120.000 €</strong> | SF = <strong>75.000 €</strong>
+  </div>
+
+  <div class="step-group">
+    <div class="step-label"><span class="sn">1</span> Variation <span class="ab a2" id="at_e2v">2 essais</span></div>
+    <div class="input-row"><label>SI − SF =</label><input type="text" class="ci" id="e2v" placeholder="?"> €</div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">2</span> Écriture <span class="ab a2" id="at_e2e">2 essais</span></div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:.75rem">
+      <div class="input-row"><label>Débit : compte</label><input type="text" class="ci" id="e2d" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e2dm" placeholder="Montant"> €</div>
+      <div class="input-row"><label>Crédit : compte</label><input type="text" class="ci" id="e2c" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e2cm" placeholder="Montant"> €</div>
+    </div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">3</span> Question <span class="ab a2" id="at_e2q">2 essais</span></div>
+    <p style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">Impact sur le résultat ?</p>
+    <div id="e2qW">
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e2q',0)">A. Les charges diminuent</button>
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e2q',1)">B. Les charges augmentent car on a puisé dans le stock pour vendre</button>
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e2q',2)">C. Aucun effet</button>
+    </div>
+    <div class="feedback" id="fb_e2q"></div>
+  </div>
+  <button class="btn btn-primary" onclick="check('e2')">Vérifier</button>
+  <div class="feedback" id="fb_e2"></div>
+</div>
+</section>
+
+<!-- EXO 3 : 71 produits finis -->
+<section id="exo3">
+<h2 class="section-title">Exercice 71 — Produits finis</h2>
+<p class="section-sub">2 tentatives par étape.</p>
+<div class="exercise">
+  <h3>📋 L'entreprise « MeubleArt »</h3>
+  <div class="exercise-data">
+    L'entreprise fabrique des meubles en bois.<br><br>
+    Stock initial produits finis (3300) : <strong>42.000 €</strong><br>
+    Stock final après inventaire : <strong>55.000 €</strong><br><br>
+    Le stock a <strong style="color:var(--green)">augmenté</strong> → l'entreprise a produit plus qu'elle n'a vendu.
+  </div>
+
+  <div class="step-group">
+    <div class="step-label"><span class="sn">1</span> Variation <span class="ab a2" id="at_e3v">2 essais</span></div>
+    <div class="input-row"><label>SI − SF =</label><input type="text" class="ci" id="e3v" placeholder="?"> €</div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">2</span> Écriture <span class="ab a2" id="at_e3e">2 essais</span></div>
+    <p style="font-size:.8rem;color:var(--text-dim);margin-bottom:.4rem">⚠️ On utilise le 71, pas le 609 !</p>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:.75rem">
+      <div class="input-row"><label>Débit : compte</label><input type="text" class="ci" id="e3d" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e3dm" placeholder="Montant"> €</div>
+      <div class="input-row"><label>Crédit : compte</label><input type="text" class="ci" id="e3c" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e3cm" placeholder="Montant"> €</div>
+    </div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">3</span> Question <span class="ab a2" id="at_e3q">2 essais</span></div>
+    <p style="font-size:.85rem;font-weight:600;margin-bottom:.4rem">Pourquoi le 71 et pas le 609 ?</p>
+    <div id="e3qW">
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e3q',0)">A. Les produits finis sont fabriqués par l'entreprise, pas achetés</button>
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e3q',1)">B. Le 609 est réservé aux grandes entreprises</button>
+      <button class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem" onclick="ansQ('e3q',2)">C. Le 71 ne s'utilise que quand le stock augmente</button>
+    </div>
+    <div class="feedback" id="fb_e3q"></div>
+  </div>
+  <button class="btn btn-primary" onclick="check('e3')">Vérifier</button>
+  <div class="feedback" id="fb_e3"></div>
+</div>
+</section>
+
+<!-- EXO 4 : COMPLET -->
+<section id="exo4">
+<h2 class="section-title">Exercice complet — Martin & Cie</h2>
+<p class="section-sub">3 types de stocks à ajuster. 2 tentatives par section.</p>
+<div class="exercise">
+  <h3>📋 Données</h3>
+  <div class="exercise-data">
+    <strong>Stocks au 01/01/N :</strong> Fournitures (3100) : <strong>1.603 €</strong> | Marchandises (3400) : <strong>8.000 €</strong> | Produits finis (3300) : <strong>18.642 €</strong><br><br>
+    <strong>Stocks au 31/12/N :</strong> Fournitures : <strong>1.410 €</strong> | Marchandises : <strong>8.600 €</strong> | Produits finis : <strong>15.035 €</strong>
+  </div>
+
+  <div class="step-group">
+    <div class="step-label"><span class="sn">1</span> Fournitures (3100) <span class="ab a2" id="at_e4f">2 essais</span></div>
+    <div class="input-row"><label>Variation :</label><input type="text" class="ci" id="e4fv" placeholder="?"> €</div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:.75rem;margin-top:.3rem">
+      <div class="input-row"><label>Débit :</label><input type="text" class="ci" id="e4fd" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e4fdm" placeholder="Mt"></div>
+      <div class="input-row"><label>Crédit :</label><input type="text" class="ci" id="e4fc" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e4fcm" placeholder="Mt"></div>
+    </div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">2</span> Marchandises (3400) <span class="ab a2" id="at_e4m">2 essais</span></div>
+    <div class="input-row"><label>Variation :</label><input type="text" class="ci" id="e4mv" placeholder="?"> €</div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:.75rem;margin-top:.3rem">
+      <div class="input-row"><label>Débit :</label><input type="text" class="ci" id="e4md" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e4mdm" placeholder="Mt"></div>
+      <div class="input-row"><label>Crédit :</label><input type="text" class="ci" id="e4mc" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e4mcm" placeholder="Mt"></div>
+    </div>
+  </div>
+  <div class="step-group">
+    <div class="step-label"><span class="sn">3</span> Produits finis (3300) <span class="ab a2" id="at_e4p">2 essais</span></div>
+    <div class="input-row"><label>Variation :</label><input type="text" class="ci" id="e4pv" placeholder="?"> €</div>
+    <div style="background:var(--navy);border-radius:var(--radius-sm);padding:.75rem;margin-top:.3rem">
+      <div class="input-row"><label>Débit :</label><input type="text" class="ci" id="e4pd" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e4pdm" placeholder="Mt"></div>
+      <div class="input-row"><label>Crédit :</label><input type="text" class="ci" id="e4pc" placeholder="N°" style="width:80px"><input type="text" class="ci" id="e4pcm" placeholder="Mt"></div>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="check('e4')">Vérifier tout</button>
+  <div class="feedback" id="fb_e4"></div>
+</div>
+</section>
+
+</div>
+
+<script>
+const TABS=['home','th609','th71','exo1','exo2','exo3','exo4'];
+function nav(id){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>t.classList.toggle('active',TABS[i]===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function pv(v){return parseFloat(String(v).replace(/\s/g,'').replace(',','.'))||0}
+function gv(id){return document.getElementById(id).value.trim().replace(/\s/g,'')}
+
+// Attempts
+const att={};
+function gA(k){if(!(k in att))att[k]=2;return att[k]}
+function uA(k){if(att[k]>0)att[k]--;return att[k]}
+function uB(k){
+  const el=document.getElementById('at_'+k);if(!el)return;
+  const a=gA(k);
+  el.textContent=a+' essai'+(a!==1?'s':'');
+  el.className='ab '+(a>=2?'a2':a===1?'a1':'a0');
+}
+
+function chkV(id,exp){
+  const el=document.getElementById(id);const v=pv(el.value);
+  if(Math.abs(v-exp)<0.5){el.classList.add('correct');el.classList.remove('wrong');return true}
+  el.classList.add('wrong');el.classList.remove('correct');return false;
+}
+function chkA(id,exp){
+  const el=document.getElementById(id);const v=gv(id);
+  if(v===String(exp)){el.classList.add('correct');el.classList.remove('wrong');return true}
+  el.classList.add('wrong');el.classList.remove('correct');return false;
+}
+function sol(id,val){
+  const el=document.getElementById(id);
+  el.value=typeof val==='number'?String(val).replace('.',','):val;
+  el.classList.add('correct','locked');el.classList.remove('wrong');
+}
+
+// Quiz
+const qC={e1q:1,e2q:1,e3q:0};
+const qE={
+  e1q:{ok:'✅ Exact ! Une partie des achats est restée en stock → les charges doivent diminuer.',ko:'❌ Le stock ↑ signifie qu\'on n\'a pas vendu tous les achats → il faut réduire les charges (609 crédité).'},
+  e2q:{ok:'✅ Correct ! On a puisé dans le stock existant → les charges réelles sont plus élevées.',ko:'❌ Le stock ↓ → on a vendu du stock en plus des achats → les charges augmentent (609 débité).'},
+  e3q:{ok:'✅ Exact ! Acheté = 609, fabriqué = 71.',ko:'❌ La distinction : biens achetés → 609, biens fabriqués → 71.'}
+};
+function ansQ(k,c){
+  if(gA(k)<=0)return;
+  const fb=document.getElementById('fb_'+k);
+  if(c===qC[k]){
+    fb.className='feedback show success';fb.textContent=qE[k].ok;att[k]=0;uB(k);
+    document.querySelectorAll('#'+k+'W button').forEach(b=>b.disabled=true);
+  }else{
+    uA(k);uB(k);
+    if(gA(k)>0){fb.className='feedback show warning';fb.textContent='❌ Pas tout à fait. Il te reste 1 essai !';}
+    else{fb.className='feedback show error';fb.textContent=qE[k].ko;document.querySelectorAll('#'+k+'W button').forEach(b=>b.disabled=true);}
+  }
+}
+
+// Exercise defs: {v:{id,val}, entry:[{d,dv,dm,mv,c,cv,cm,cmv}], attV, attE, solMsg}
+const EX={
+  e1:{attV:'e1v',attE:'e1e',v:{id:'e1v',val:-3000},
+    entry:[{d:'e1d',dv:'3400',dm:'e1dm',mv:3000,c:'e1c',cv:'6094',cm:'e1cm',cmv:3000}],
+    sol:'Stock ↑ 3.000 €. D 3400 / C 6094 pour 3.000 €. Le 609 crédité diminue les charges.'},
+  e2:{attV:'e2v',attE:'e2e',v:{id:'e2v',val:45000},
+    entry:[{d:'e2d',dv:'6094',dm:'e2dm',mv:45000,c:'e2c',cv:'3400',cm:'e2cm',cmv:45000}],
+    sol:'Stock ↓ 45.000 €. D 6094 / C 3400 pour 45.000 €. Le 609 débité augmente les charges.'},
+  e3:{attV:'e3v',attE:'e3e',v:{id:'e3v',val:-13000},
+    entry:[{d:'e3d',dv:'3300',dm:'e3dm',mv:13000,c:'e3c',cv:'7130',cm:'e3cm',cmv:13000}],
+    sol:'Stock PF ↑ 13.000 €. D 3300 / C 7130 pour 13.000 €. Le 71 crédité augmente les produits.'}
+};
+
+function check(k){
+  if(k==='e4'){checkE4();return;}
+  const ex=EX[k];let allOk=true;
+  // Variation
+  if(gA(ex.attV)>0){
+    if(!chkV(ex.v.id,ex.v.val)){allOk=false;uA(ex.attV);uB(ex.attV);if(gA(ex.attV)<=0)sol(ex.v.id,ex.v.val)}
+    else{att[ex.attV]=0;uB(ex.attV)}
+  }
+  // Entry
+  if(gA(ex.attE)>0){
+    let eOk=true;
+    ex.entry.forEach(e=>{
+      if(!chkA(e.d,e.dv))eOk=false;if(!chkV(e.dm,e.mv))eOk=false;
+      if(!chkA(e.c,e.cv))eOk=false;if(!chkV(e.cm,e.cmv))eOk=false;
+    });
+    if(!eOk){allOk=false;uA(ex.attE);uB(ex.attE);
+      if(gA(ex.attE)<=0)ex.entry.forEach(e=>{sol(e.d,e.dv);sol(e.dm,e.mv);sol(e.c,e.cv);sol(e.cm,e.cmv)})
+    }else{att[ex.attE]=0;uB(ex.attE)}
+  }
+  const fb=document.getElementById('fb_'+k);
+  if(allOk){fb.className='feedback show success';fb.innerHTML='🎉 Parfait ! '+ex.sol}
+  else if(gA(ex.attV)<=0&&gA(ex.attE)<=0){fb.className='feedback show info';fb.innerHTML='Solution affichée. '+ex.sol}
+  else{fb.className='feedback show error';fb.textContent='Certaines réponses sont incorrectes (en rouge). Corrige et réessaie !'}
+}
+
+// E4 complet
+const E4={
+  f:{v:193,d:'6091',dm:193,c:'3100',cm:193},
+  m:{v:-600,d:'3400',dm:600,c:'6094',cm:600},
+  p:{v:3607,d:'7130',dm:3607,c:'3300',cm:3607}
+};
+function checkE4(){
+  let allOk=true;
+  ['f','m','p'].forEach(k=>{
+    const a='e4'+k;if(gA(a)<=0)return;
+    const s=E4[k];let ok=true;
+    if(!chkV('e4'+k+'v',s.v))ok=false;
+    if(!chkA('e4'+k+'d',s.d))ok=false;if(!chkV('e4'+k+'dm',s.dm))ok=false;
+    if(!chkA('e4'+k+'c',s.c))ok=false;if(!chkV('e4'+k+'cm',s.cm))ok=false;
+    if(!ok){allOk=false;uA(a);uB(a);
+      if(gA(a)<=0){sol('e4'+k+'v',s.v);sol('e4'+k+'d',s.d);sol('e4'+k+'dm',s.dm);sol('e4'+k+'c',s.c);sol('e4'+k+'cm',s.cm)}
+    }else{att[a]=0;uB(a)}
+  });
+  const fb=document.getElementById('fb_e4');
+  if(allOk){
+    fb.className='feedback show success';
+    fb.innerHTML='🎉 Tout est correct !<br>• Fournitures : stock ↓ 193 € → D 6091 / C 3100<br>• Marchandises : stock ↑ 600 € → D 3400 / C 6094<br>• Produits finis : stock ↓ 3.607 € → D 7130 / C 3300<br><br>Var. 609 = +193 − 600 = −407 € | Var. 71 = −3.607 €';
+  }else{
+    const done=['f','m','p'].every(k=>gA('e4'+k)<=0);
+    if(done){fb.className='feedback show info';fb.innerHTML='Solutions affichées.<br>• Fourn. : D 6091 / C 3100 (193 €)<br>• March. : D 3400 / C 6094 (600 €)<br>• PF : D 7130 / C 3300 (3.607 €)'}
+    else{fb.className='feedback show error';fb.textContent='Certaines réponses sont incorrectes. Corrige et réessaie !'}
+  }
+}
+</script>
+</body>
+</html>
